@@ -13,9 +13,14 @@ variable "scope_type" {
 }
 
 variable "management_group_id" {
-  description = "The ID of the management group to assign the policy to. Required if scope_type is 'management_group'"
+  description = "The ID of the management group to assign the policy to. Required if scope_type is 'management_group'. Use the display name of the management group, not the full resource ID."
   type        = string
   default     = null
+
+  validation {
+    condition     = var.management_group_id == null || can(regex("^[0-9a-zA-Z-_]{1,90}$", var.management_group_id))
+    error_message = "The management_group_id must be a valid management group name/ID (alphanumeric, hyphens, and underscores only)."
+  }
 }
 
 variable "subscription_id" {

@@ -17,12 +17,10 @@ locals {
   ) : "/subscriptions/${data.azurerm_subscription.current.subscription_id}"
 
   # Handle scope type (management group, subscription, or storage account) with null checks
-  management_group_scope = var.scope_type == "management_group" && var.management_group_id != null ? "/providers/Microsoft.Management/managementGroups/${var.management_group_id}" : null
-  subscription_scope     = var.scope_type == "subscription" ? local.formatted_subscription_id : null
-  storage_account_scope  = var.scope_type == "storage_account" && var.storage_account_name != null && var.resource_group_name != null ? "${local.formatted_subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Storage/storageAccounts/${var.storage_account_name}" : null
-  scope                  = coalesce(local.management_group_scope, local.subscription_scope, local.storage_account_scope, "/subscriptions/${data.azurerm_subscription.current.subscription_id}")
-
-  # Convert days to string values for the policy
+  management_group_scope       = var.scope_type == "management_group" && var.management_group_id != null ? "/providers/Microsoft.Management/managementGroups/${var.management_group_id}" : null
+  subscription_scope           = var.scope_type == "subscription" ? local.formatted_subscription_id : null
+  storage_account_scope        = var.scope_type == "storage_account" && var.storage_account_name != null && var.resource_group_name != null ? "${local.formatted_subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Storage/storageAccounts/${var.storage_account_name}" : null
+  scope                        = coalesce(local.management_group_scope, local.subscription_scope, local.storage_account_scope, "/subscriptions/${data.azurerm_subscription.current.subscription_id}") # Convert days to string values for the policy
   days_to_cool_str             = tostring(var.days_to_cool_tier)
   days_to_archive_str          = tostring(var.days_to_archive_tier)
   days_to_delete_str           = tostring(var.days_to_delete)
@@ -159,9 +157,10 @@ resource "azurerm_management_group_policy_assignment" "mg_storage_lifecycle" {
   count                = var.scope_type == "management_group" ? 1 : 0
   name                 = "${local.policy_name}-assignment"
   policy_definition_id = azurerm_policy_definition.storage_lifecycle.id
-  management_group_id  = var.management_group_id
-  display_name         = "${local.policy_display_name} Assignment"
-  description          = "Assigns the storage lifecycle management policy to the specified management group"
+  # Pass the management group ID directly, but ensure it's a string
+  management_group_id = tostring(var.management_group_id)
+  display_name        = "${local.policy_display_name} Assignment"
+  description         = "Assigns the storage lifecycle management policy to the specified management group"
 
   parameters = jsonencode({})
 
@@ -203,7 +202,7 @@ resource "azurerm_resource_policy_assignment" "sa_storage_lifecycle" {
 # Assign the necessary permissions to the policy assignment's managed identity
 resource "azurerm_role_assignment" "mg_storage_lifecycle" {
   count                = var.scope_type == "management_group" ? 1 : 0
-  scope                = local.scope
+  scope                = local.management_group_scope
   role_definition_name = "Storage Account Contributor"
   principal_id         = azurerm_management_group_policy_assignment.mg_storage_lifecycle[0].identity[0].principal_id
 }
