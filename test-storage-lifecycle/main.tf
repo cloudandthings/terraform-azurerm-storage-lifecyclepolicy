@@ -1,13 +1,13 @@
 provider "azurerm" {
   features {}
-  subscription_id = "605d8880-9a46-4bdd-b718-f665135cbc37"
+  subscription_id = ""
 }
 
 module "storage_lifecycle" {
-  source = "../" # Update this to the path of your module
+  source = "../" # Update this to the path of your module to test set parameters as per below according to your needs, for example, location, subscription_id, etc.
 
-  scope_type      = "subscription"
-  subscription_id = "605d8880-9a46-4bdd-b718-f665135cbc37"
+  scope_type      = ""
+  subscription_id = ""
   location        = var.location
 
   days_to_cool_tier        = 30
