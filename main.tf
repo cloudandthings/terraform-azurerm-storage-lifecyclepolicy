@@ -4,19 +4,6 @@
 # Get current subscription information for default subscription ID
 data "azurerm_subscription" "current" {}
 
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = ">=3.0.0"
-    }
-  }
-}
-
-provider "azurerm" {
-  features {}
-}
-
 locals {
   policy_name         = "storage-lifecycle-management-policy"
   policy_display_name = "Enforce Storage Lifecycle Management"
