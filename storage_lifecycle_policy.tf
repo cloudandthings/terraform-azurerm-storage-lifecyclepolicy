@@ -17,30 +17,13 @@ locals {
   ) : "/subscriptions/${data.azurerm_subscription.current.subscription_id}"
 
   # Handle scope type (management group, subscription, or storage account) with null checks
-  management_group_scope       = var.scope_type == "management_group" && var.management_group_id != null ? "/providers/Microsoft.Management/managementGroups/${var.management_group_id}" : null
-  subscription_scope           = var.scope_type == "subscription" ? local.formatted_subscription_id : null
-  storage_account_scope        = var.scope_type == "storage_account" && var.storage_account_name != null && var.resource_group_name != null ? "${local.formatted_subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Storage/storageAccounts/${var.storage_account_name}" : null
-  scope                        = coalesce(local.management_group_scope, local.subscription_scope, local.storage_account_scope, "/subscriptions/${data.azurerm_subscription.current.subscription_id}") # Convert days to string values for the policy
-  days_to_cool_str             = tostring(var.days_to_cool_tier)
-  days_to_archive_str          = tostring(var.days_to_archive_tier)
-  days_to_delete_str           = tostring(var.days_to_delete)
-  days_to_delete_snapshots_str = tostring(var.days_to_delete_snapshots)
-}
+  management_group_scope = var.scope_type == "management_group" && var.management_group_id != null ? "/providers/Microsoft.Management/managementGroups/${var.management_group_id}" : null
+  subscription_scope     = var.scope_type == "subscription" ? local.formatted_subscription_id : null
+  storage_account_scope  = var.scope_type == "storage_account" && var.storage_account_name != null && var.resource_group_name != null ? "${local.formatted_subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Storage/storageAccounts/${var.storage_account_name}" : null
+  scope                  = coalesce(local.management_group_scope, local.subscription_scope, local.storage_account_scope, "/subscriptions/${data.azurerm_subscription.current.subscription_id}")
 
-# Define the custom policy definition
-resource "azurerm_policy_definition" "storage_lifecycle" {
-  name         = local.policy_name
-  policy_type  = "Custom"
-  mode         = "Indexed"
-  display_name = local.policy_display_name
-  description  = local.policy_description
-
-  metadata = jsonencode({
-    category = "Storage"
-    version  = "1.0.0"
-  })
-
-  policy_rule = jsonencode({
+  # Create separate policy rules based on scope type
+  subscription_policy_rule = {
     if = {
       allOf = [
         {
@@ -48,85 +31,85 @@ resource "azurerm_policy_definition" "storage_lifecycle" {
           equals = "Microsoft.Storage/storageAccounts"
         }
       ]
-    }
+    },
     then = {
-      effect = var.policy_effect
+      effect = var.policy_effect,
       details = {
-        type            = "Microsoft.Storage/storageAccounts/managementPolicies"
-        name            = "default"
-        deploymentScope = "subscription"
-        existenceScope  = "resourceGroup"
+        type            = "Microsoft.Storage/storageAccounts/managementPolicies",
+        name            = "default",
+        deploymentScope = "subscription",
+        existenceScope  = "resourceGroup",
         existenceCondition = {
           allOf = [
             {
-              field  = "Microsoft.Storage/storageAccounts/managementPolicies/policy.rules[*]"
+              field  = "Microsoft.Storage/storageAccounts/managementPolicies/policy.rules[*]",
               exists = "true"
             }
           ]
-        }
+        },
         roleDefinitionIds = [
-          "/providers/microsoft.authorization/roleDefinitions/17d1049b-9a84-46fb-8f53-869881c3d3ab" # Storage Account Contributor
-        ]
+          "/providers/microsoft.authorization/roleDefinitions/17d1049b-9a84-46fb-8f53-869881c3d3ab"
+        ],
         deployment = {
           properties = {
-            mode     = "incremental"
-            location = "[parameters('location')]"
+            mode     = "incremental",
+            location = "[parameters('location')]",
             template = {
-              "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-              contentVersion = "1.0.0.0"
+              "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              contentVersion = "1.0.0.0",
               parameters = {
                 storageAccountName = {
                   type = "string"
-                }
+                },
                 resourceGroupName = {
                   type = "string"
-                }
+                },
                 location = {
                   type = "string"
-                }
+                },
                 daysToCool = {
                   type = "int"
-                }
+                },
                 daysToArchive = {
                   type = "int"
-                }
+                },
                 daysToDelete = {
                   type = "int"
-                }
+                },
                 daysToDeleteSnapshots = {
                   type = "int"
                 }
-              }
-              variables = {}
+              },
+              variables = {},
               resources = [
                 {
-                  type       = "Microsoft.Storage/storageAccounts/managementPolicies"
-                  apiVersion = "2021-09-01"
-                  name       = "[concat(parameters('storageAccountName'), '/default')]"
+                  type       = "Microsoft.Storage/storageAccounts/managementPolicies",
+                  apiVersion = "2021-09-01",
+                  name       = "[concat(parameters('storageAccountName'), '/default')]",
                   properties = {
                     policy = {
                       rules = [
                         {
-                          name    = "standardLifecycleRule"
-                          enabled = true
-                          type    = "Lifecycle"
+                          name    = "standardLifecycleRule",
+                          enabled = true,
+                          type    = "Lifecycle",
                           definition = {
                             filters = {
-                              blobTypes   = ["blockBlob"]
+                              blobTypes   = ["blockBlob"],
                               prefixMatch = var.prefix_filters
-                            }
+                            },
                             actions = {
                               baseBlob = {
                                 tierToCool = {
                                   daysAfterModificationGreaterThan = "[parameters('daysToCool')]"
-                                }
+                                },
                                 tierToArchive = {
                                   daysAfterModificationGreaterThan = "[parameters('daysToArchive')]"
-                                }
+                                },
                                 delete = {
                                   daysAfterModificationGreaterThan = "[parameters('daysToDelete')]"
                                 }
-                              }
+                              },
                               snapshot = {
                                 delete = {
                                   daysAfterCreationGreaterThan = "[parameters('daysToDeleteSnapshots')]"
@@ -140,26 +123,26 @@ resource "azurerm_policy_definition" "storage_lifecycle" {
                   }
                 }
               ]
-            }
+            },
             parameters = {
               storageAccountName = {
                 value = "[field('name')]"
-              }
+              },
               resourceGroupName = {
                 value = "[resourceGroup().name]"
-              }
+              },
               location = {
                 value = "[field('location')]"
-              }
+              },
               daysToCool = {
                 value = var.days_to_cool_tier
-              }
+              },
               daysToArchive = {
                 value = var.days_to_archive_tier
-              }
+              },
               daysToDelete = {
                 value = var.days_to_delete
-              }
+              },
               daysToDeleteSnapshots = {
                 value = var.days_to_delete_snapshots
               }
@@ -168,7 +151,154 @@ resource "azurerm_policy_definition" "storage_lifecycle" {
         }
       }
     }
+  }
+
+  # Resource group policy rule (for storage account level)
+  resource_group_policy_rule = {
+    if = {
+      allOf = [
+        {
+          field  = "type"
+          equals = "Microsoft.Storage/storageAccounts"
+        }
+      ]
+    },
+    then = {
+      effect = var.policy_effect,
+      details = {
+        type            = "Microsoft.Storage/storageAccounts/managementPolicies",
+        name            = "default",
+        deploymentScope = "resourceGroup",
+        existenceScope  = "resourceGroup",
+        existenceCondition = {
+          allOf = [
+            {
+              field  = "Microsoft.Storage/storageAccounts/managementPolicies/policy.rules[*]",
+              exists = "true"
+            }
+          ]
+        },
+        roleDefinitionIds = [
+          "/providers/microsoft.authorization/roleDefinitions/17d1049b-9a84-46fb-8f53-869881c3d3ab"
+        ],
+        deployment = {
+          properties = {
+            mode = "incremental",
+            template = {
+              "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              contentVersion = "1.0.0.0",
+              parameters = {
+                storageAccountName = {
+                  type = "string"
+                },
+                daysToCool = {
+                  type = "int"
+                },
+                daysToArchive = {
+                  type = "int"
+                },
+                daysToDelete = {
+                  type = "int"
+                },
+                daysToDeleteSnapshots = {
+                  type = "int"
+                }
+              },
+              variables = {},
+              resources = [
+                {
+                  type       = "Microsoft.Storage/storageAccounts/managementPolicies",
+                  apiVersion = "2021-09-01",
+                  name       = "[concat(parameters('storageAccountName'), '/default')]",
+                  properties = {
+                    policy = {
+                      rules = [
+                        {
+                          name    = "standardLifecycleRule",
+                          enabled = true,
+                          type    = "Lifecycle",
+                          definition = {
+                            filters = {
+                              blobTypes   = ["blockBlob"],
+                              prefixMatch = var.prefix_filters
+                            },
+                            actions = {
+                              baseBlob = {
+                                tierToCool = {
+                                  daysAfterModificationGreaterThan = "[parameters('daysToCool')]"
+                                },
+                                tierToArchive = {
+                                  daysAfterModificationGreaterThan = "[parameters('daysToArchive')]"
+                                },
+                                delete = {
+                                  daysAfterModificationGreaterThan = "[parameters('daysToDelete')]"
+                                }
+                              },
+                              snapshot = {
+                                delete = {
+                                  daysAfterCreationGreaterThan = "[parameters('daysToDeleteSnapshots')]"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            parameters = {
+              storageAccountName = {
+                value = "[field('name')]"
+              },
+              daysToCool = {
+                value = var.days_to_cool_tier
+              },
+              daysToArchive = {
+                value = var.days_to_archive_tier
+              },
+              daysToDelete = {
+                value = var.days_to_delete
+              },
+              daysToDeleteSnapshots = {
+                value = var.days_to_delete_snapshots
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Define separate policies based on scope type
+resource "azurerm_policy_definition" "storage_lifecycle" {
+  name         = local.policy_name
+  policy_type  = "Custom"
+  mode         = "Indexed"
+  display_name = local.policy_display_name
+  description  = local.policy_description
+
+  metadata = jsonencode({
+    category = "Storage"
+    version  = "1.0.0"
   })
+
+  # Conditionally include location parameter only for management group and subscription scopes
+  parameters = var.scope_type == "storage_account" ? jsonencode({}) : jsonencode({
+    location = {
+      type = "String",
+      metadata = {
+        displayName = "Location",
+        description = "The Azure region where resources will be deployed"
+      },
+      defaultValue = var.location
+    }
+  })
+
+  # Use the appropriate policy rule based on scope type
+  policy_rule = var.scope_type == "storage_account" ? jsonencode(local.resource_group_policy_rule) : jsonencode(local.subscription_policy_rule)
 }
 
 # Assign the policy to the specified scope
@@ -176,12 +306,16 @@ resource "azurerm_management_group_policy_assignment" "mg_storage_lifecycle" {
   count                = var.scope_type == "management_group" ? 1 : 0
   name                 = "${local.policy_name}-assignment"
   policy_definition_id = azurerm_policy_definition.storage_lifecycle.id
-  # Pass the management group ID directly, but ensure it's a string
-  management_group_id = tostring(var.management_group_id)
-  display_name        = "${local.policy_display_name} Assignment"
-  description         = "Assigns the storage lifecycle management policy to the specified management group"
+  management_group_id  = var.management_group_id
+  display_name         = "${local.policy_display_name} Assignment"
+  description          = "Assigns the storage lifecycle management policy to the specified management group"
+  location             = var.location
 
-  parameters = jsonencode({})
+  parameters = jsonencode({
+    location = {
+      value = var.location
+    }
+  })
 
   identity {
     type = "SystemAssigned"
@@ -195,8 +329,13 @@ resource "azurerm_subscription_policy_assignment" "sub_storage_lifecycle" {
   subscription_id      = local.formatted_subscription_id
   display_name         = "${local.policy_display_name} Assignment"
   description          = "Assigns the storage lifecycle management policy to the specified subscription"
+  location             = var.location
 
-  parameters = jsonencode({})
+  parameters = jsonencode({
+    location = {
+      value = var.location
+    }
+  })
 
   identity {
     type = "SystemAssigned"
@@ -210,7 +349,9 @@ resource "azurerm_resource_policy_assignment" "sa_storage_lifecycle" {
   resource_id          = local.storage_account_scope
   display_name         = "${local.policy_display_name} Assignment"
   description          = "Assigns the storage lifecycle management policy to the specified storage account"
+  location             = var.location # Added location parameter for identity
 
+  # No parameters needed for storage account scope
   parameters = jsonencode({})
 
   identity {
@@ -228,14 +369,14 @@ resource "azurerm_role_assignment" "mg_storage_lifecycle" {
 
 resource "azurerm_role_assignment" "sub_storage_lifecycle" {
   count                = var.scope_type == "subscription" ? 1 : 0
-  scope                = local.scope
+  scope                = local.subscription_scope
   role_definition_name = "Storage Account Contributor"
   principal_id         = azurerm_subscription_policy_assignment.sub_storage_lifecycle[0].identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "sa_storage_lifecycle" {
   count                = var.scope_type == "storage_account" ? 1 : 0
-  scope                = local.scope
+  scope                = local.storage_account_scope
   role_definition_name = "Storage Account Contributor"
   principal_id         = azurerm_resource_policy_assignment.sa_storage_lifecycle[0].identity[0].principal_id
 }
