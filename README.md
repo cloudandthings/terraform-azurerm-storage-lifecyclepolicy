@@ -44,7 +44,7 @@ module "storage_lifecycle_management_group" {
 source = "../" # Path to the module directory
 
 scope_type = "management_group"
-management_group_id = "mg-production" # Use the display name of the management group, not the UUID
+management_group_id = "mg-production" # Use the ID of the management group
 
 days_to_cool_tier = 45
 days_to_archive_tier = 120

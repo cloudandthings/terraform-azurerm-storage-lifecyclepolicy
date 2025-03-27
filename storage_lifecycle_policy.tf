@@ -158,7 +158,7 @@ resource "azurerm_management_group_policy_assignment" "mg_storage_lifecycle" {
   name                 = "${local.policy_name}-assignment"
   policy_definition_id = azurerm_policy_definition.storage_lifecycle.id
   # Pass the management group ID directly, but ensure it's a string
-  management_group_id = tostring(var.management_group_id)
+  management_group_id = startswith(var.management_group_id, "/providers/Microsoft.Management/managementGroups/") ? var.management_group_id : "/providers/Microsoft.Management/managementGroups/${var.management_group_id}"
   display_name        = "${local.policy_display_name} Assignment"
   description         = "Assigns the storage lifecycle management policy to the specified management group"
 
