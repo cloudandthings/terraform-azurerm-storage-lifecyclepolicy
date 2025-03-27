@@ -1,6 +1,6 @@
 # Azure Storage Lifecycle Management Policy Terraform Module
 
-This Terraform module creates and assigns an Azure Policy that enforces lifecycle management on Azure Storage accounts. The policy can be applied at either management group or subscription level.
+This Terraform module creates and assigns an Azure Policy that enforces lifecycle management on Azure Storage accounts. The policy can be applied at either management group, subscription level or storage account level.
 
 ## Features
 
