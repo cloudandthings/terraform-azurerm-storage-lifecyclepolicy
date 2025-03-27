@@ -69,7 +69,8 @@ resource "azurerm_policy_definition" "storage_lifecycle" {
         ]
         deployment = {
           properties = {
-            mode = "incremental"
+            mode     = "incremental"
+            location = "[parameters('location')]"
             template = {
               "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
               contentVersion = "1.0.0.0"
@@ -79,6 +80,21 @@ resource "azurerm_policy_definition" "storage_lifecycle" {
                 }
                 resourceGroupName = {
                   type = "string"
+                }
+                location = {
+                  type = "string"
+                }
+                daysToCool = {
+                  type = "int"
+                }
+                daysToArchive = {
+                  type = "int"
+                }
+                daysToDelete = {
+                  type = "int"
+                }
+                daysToDeleteSnapshots = {
+                  type = "int"
                 }
               }
               variables = {}
@@ -132,6 +148,9 @@ resource "azurerm_policy_definition" "storage_lifecycle" {
               resourceGroupName = {
                 value = "[resourceGroup().name]"
               }
+              location = {
+                value = "[field('location')]"
+              }
               daysToCool = {
                 value = var.days_to_cool_tier
               }
@@ -158,7 +177,7 @@ resource "azurerm_management_group_policy_assignment" "mg_storage_lifecycle" {
   name                 = "${local.policy_name}-assignment"
   policy_definition_id = azurerm_policy_definition.storage_lifecycle.id
   # Pass the management group ID directly, but ensure it's a string
-  management_group_id = startswith(var.management_group_id, "/providers/Microsoft.Management/managementGroups/") ? var.management_group_id : "/providers/Microsoft.Management/managementGroups/${var.management_group_id}"
+  management_group_id = tostring(var.management_group_id)
   display_name        = "${local.policy_display_name} Assignment"
   description         = "Assigns the storage lifecycle management policy to the specified management group"
 
