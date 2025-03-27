@@ -29,10 +29,11 @@ locals {
     "/subscriptions/${var.subscription_id}"
   ) : "/subscriptions/${data.azurerm_subscription.current.subscription_id}"
 
-  # Handle scope type (management group or subscription) with null checks
+  # Handle scope type (management group, subscription, or storage account) with null checks
   management_group_scope = var.scope_type == "management_group" && var.management_group_id != null ? "/providers/Microsoft.Management/managementGroups/${var.management_group_id}" : null
   subscription_scope     = var.scope_type == "subscription" ? local.formatted_subscription_id : null
-  scope                  = coalesce(local.management_group_scope, local.subscription_scope, "/subscriptions/${data.azurerm_subscription.current.subscription_id}")
+  storage_account_scope  = var.scope_type == "storage_account" && var.storage_account_name != null && var.resource_group_name != null ? "${local.formatted_subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Storage/storageAccounts/${var.storage_account_name}" : null
+  scope                  = coalesce(local.management_group_scope, local.subscription_scope, local.storage_account_scope, "/subscriptions/${data.azurerm_subscription.current.subscription_id}")
 
   # Convert days to string values for the policy
   days_to_cool_str             = tostring(var.days_to_cool_tier)
@@ -197,6 +198,21 @@ resource "azurerm_subscription_policy_assignment" "sub_storage_lifecycle" {
   }
 }
 
+resource "azurerm_resource_policy_assignment" "sa_storage_lifecycle" {
+  count                = var.scope_type == "storage_account" ? 1 : 0
+  name                 = "${local.policy_name}-assignment"
+  policy_definition_id = azurerm_policy_definition.storage_lifecycle.id
+  resource_id          = local.storage_account_scope
+  display_name         = "${local.policy_display_name} Assignment"
+  description          = "Assigns the storage lifecycle management policy to the specified storage account"
+
+  parameters = jsonencode({})
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
 # Assign the necessary permissions to the policy assignment's managed identity
 resource "azurerm_role_assignment" "mg_storage_lifecycle" {
   count                = var.scope_type == "management_group" ? 1 : 0
@@ -210,4 +226,11 @@ resource "azurerm_role_assignment" "sub_storage_lifecycle" {
   scope                = local.scope
   role_definition_name = "Storage Account Contributor"
   principal_id         = azurerm_subscription_policy_assignment.sub_storage_lifecycle[0].identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "sa_storage_lifecycle" {
+  count                = var.scope_type == "storage_account" ? 1 : 0
+  scope                = local.scope
+  role_definition_name = "Storage Account Contributor"
+  principal_id         = azurerm_resource_policy_assignment.sa_storage_lifecycle[0].identity[0].principal_id
 }

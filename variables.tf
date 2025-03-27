@@ -2,13 +2,13 @@
 # Variables for the Azure Storage Lifecycle Management Policy Module
 
 variable "scope_type" {
-  description = "The type of scope to assign the policy to. Valid values are 'management_group' or 'subscription'"
+  description = "The type of scope to assign the policy to. Valid values are 'management_group', 'subscription', or 'storage_account'"
   type        = string
   default     = "subscription"
 
   validation {
-    condition     = contains(["management_group", "subscription"], var.scope_type)
-    error_message = "The scope_type must be either 'management_group' or 'subscription'."
+    condition     = contains(["management_group", "subscription", "storage_account"], var.scope_type)
+    error_message = "The scope_type must be either 'management_group', 'subscription', or 'storage_account'."
   }
 }
 
@@ -89,4 +89,15 @@ variable "policy_effect" {
     condition     = contains(["DeployIfNotExists", "AuditIfNotExists", "Disabled"], var.policy_effect)
     error_message = "The policy_effect must be either 'DeployIfNotExists', 'AuditIfNotExists', or 'Disabled'."
   }
+}
+variable "storage_account_name" {
+  description = "The name of the storage account to assign the policy to. Required if scope_type is 'storage_account'"
+  type        = string
+  default     = null
+}
+
+variable "resource_group_name" {
+  description = "The name of the resource group containing the storage account. Required if scope_type is 'storage_account'"
+  type        = string
+  default     = null
 }

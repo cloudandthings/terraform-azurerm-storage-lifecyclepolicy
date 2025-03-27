@@ -6,7 +6,7 @@ This Terraform module creates and assigns an Azure Policy that enforces lifecycl
 
 - Enforce consistent lifecycle management across all storage accounts
 - Configure days for transition to cool tier, archive tier, and deletion
-- Apply to management group or subscription level
+- Apply at management group, subscription, or individual storage account level
 - Configurable policy effect (Deploy, Audit, or Disable)
 - Custom prefix filters for targeted application
 
@@ -63,19 +63,39 @@ prefix_filters = ["logs/", "metrics/"]
 policy_effect = "AuditIfNotExists" # Start with audit before enforcing
 }
 
-# Terraform Docs
+# Example 3: Apply to a specific storage account
+
+module "storage_lifecycle_storage_account" {
+source = "../" # Path to the module directory
+
+scope_type = "storage_account"
+subscription_id = "00000000-0000-0000-0000-000000000000" # Replace with your subscription ID
+storage_account_name = "mystorageaccount" # Replace with your storage account name
+resource_group_name = "myresourcegroup" # Replace with your resource group name
+
+days_to_cool_tier = 60
+days_to_archive_tier = 180
+days_to_delete = 365
+days_to_delete_snapshots = 30
+
+prefix_filters = ["critical/", "important/"]
+
+policy_effect = "DeployIfNotExists"
+}
 
 ## Requirements
 
-| Name                                                               | Version |
-| ------------------------------------------------------------------ | ------- |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement_azurerm) | >=3.0.0 |
+| Name                                                                     | Version  |
+| ------------------------------------------------------------------------ | -------- |
+| <a name="requirement_terraform"></a> [terraform](#requirement_terraform) | >= 1.0.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement_azurerm)       | >=3.0.0  |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement_azurerm)       | >= 3.0.0 |
 
 ## Providers
 
-| Name                                                         | Version |
-| ------------------------------------------------------------ | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider_azurerm) | >=3.0.0 |
+| Name                                                         | Version          |
+| ------------------------------------------------------------ | ---------------- |
+| <a name="provider_azurerm"></a> [azurerm](#provider_azurerm) | >=3.0.0 >= 3.0.0 |
 
 ## Modules
 
@@ -87,7 +107,9 @@ No modules.
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | [azurerm_management_group_policy_assignment.mg_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_group_policy_assignment) | resource    |
 | [azurerm_policy_definition.storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/policy_definition)                                      | resource    |
+| [azurerm_resource_policy_assignment.sa_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_policy_assignment)                 | resource    |
 | [azurerm_role_assignment.mg_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment)                                       | resource    |
+| [azurerm_role_assignment.sa_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment)                                       | resource    |
 | [azurerm_role_assignment.sub_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment)                                      | resource    |
 | [azurerm_subscription_policy_assignment.sub_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subscription_policy_assignment)        | resource    |
 | [azurerm_subscription.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subscription)                                                       | data source |
@@ -104,7 +126,9 @@ No modules.
 | <a name="input_management_group_id"></a> [management_group_id](#input_management_group_id)                | The ID of the management group to assign the policy to. Required if scope_type is 'management_group'                                                                                   | `string`       | `null`                |    no    |
 | <a name="input_policy_effect"></a> [policy_effect](#input_policy_effect)                                  | The effect of the policy. Valid values are 'DeployIfNotExists', 'AuditIfNotExists', or 'Disabled'                                                                                      | `string`       | `"DeployIfNotExists"` |    no    |
 | <a name="input_prefix_filters"></a> [prefix_filters](#input_prefix_filters)                               | A list of blob prefix filters to apply the lifecycle policy to                                                                                                                         | `list(string)` | `[]`                  |    no    |
-| <a name="input_scope_type"></a> [scope_type](#input_scope_type)                                           | The type of scope to assign the policy to. Valid values are 'management_group' or 'subscription'                                                                                       | `string`       | `"subscription"`      |    no    |
+| <a name="input_resource_group_name"></a> [resource_group_name](#input_resource_group_name)                | The name of the resource group containing the storage account. Required if scope_type is 'storage_account'                                                                             | `string`       | `null`                |    no    |
+| <a name="input_scope_type"></a> [scope_type](#input_scope_type)                                           | The type of scope to assign the policy to. Valid values are 'management_group', 'subscription', or 'storage_account'                                                                   | `string`       | `"subscription"`      |    no    |
+| <a name="input_storage_account_name"></a> [storage_account_name](#input_storage_account_name)             | The name of the storage account to assign the policy to. Required if scope_type is 'storage_account'                                                                                   | `string`       | `null`                |    no    |
 | <a name="input_subscription_id"></a> [subscription_id](#input_subscription_id)                            | The ID of the subscription to assign the policy to. Required if scope_type is 'subscription'. If not provided and scope_type is 'subscription', the current subscription will be used. | `string`       | `null`                |    no    |
 
 ## Outputs
