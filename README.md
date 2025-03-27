@@ -73,7 +73,7 @@ days_to_delete_snapshots = 30
 
 prefix_filters = ["critical/", "important/"]
 
-policy_effect = "DeployIfNotExists"
+policy_effect = "DeployIfNotExists" # Start with audit before enforcing but here we showcase DINE approach in our example.
 }
 
 # Terraform Documentation
