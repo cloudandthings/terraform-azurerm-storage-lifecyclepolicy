@@ -62,3 +62,56 @@ prefix_filters = ["logs/", "metrics/"]
 
 policy_effect = "AuditIfNotExists" # Start with audit before enforcing
 }
+
+# Terraform Docs
+
+## Requirements
+
+| Name                                                               | Version |
+| ------------------------------------------------------------------ | ------- |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement_azurerm) | >=3.0.0 |
+
+## Providers
+
+| Name                                                         | Version |
+| ------------------------------------------------------------ | ------- |
+| <a name="provider_azurerm"></a> [azurerm](#provider_azurerm) | >=3.0.0 |
+
+## Modules
+
+No modules.
+
+## Resources
+
+| Name                                                                                                                                                                                  | Type        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| [azurerm_management_group_policy_assignment.mg_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_group_policy_assignment) | resource    |
+| [azurerm_policy_definition.storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/policy_definition)                                      | resource    |
+| [azurerm_role_assignment.mg_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment)                                       | resource    |
+| [azurerm_role_assignment.sub_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment)                                      | resource    |
+| [azurerm_subscription_policy_assignment.sub_storage_lifecycle](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subscription_policy_assignment)        | resource    |
+| [azurerm_subscription.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subscription)                                                       | data source |
+
+## Inputs
+
+| Name                                                                                                      | Description                                                                                                                                                                            | Type           | Default               | Required |
+| --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | --------------------- | :------: |
+| <a name="input_days_to_archive_tier"></a> [days_to_archive_tier](#input_days_to_archive_tier)             | The number of days after which a blob should be moved to the archive tier                                                                                                              | `number`       | `90`                  |    no    |
+| <a name="input_days_to_cool_tier"></a> [days_to_cool_tier](#input_days_to_cool_tier)                      | The number of days after which a blob should be moved to the cool tier                                                                                                                 | `number`       | `30`                  |    no    |
+| <a name="input_days_to_delete"></a> [days_to_delete](#input_days_to_delete)                               | The number of days after which a blob should be deleted                                                                                                                                | `number`       | `365`                 |    no    |
+| <a name="input_days_to_delete_snapshots"></a> [days_to_delete_snapshots](#input_days_to_delete_snapshots) | The number of days after which blob snapshots should be deleted                                                                                                                        | `number`       | `30`                  |    no    |
+| <a name="input_location"></a> [location](#input_location)                                                 | The Azure region to use for deployments                                                                                                                                                | `string`       | `"westeurope"`        |    no    |
+| <a name="input_management_group_id"></a> [management_group_id](#input_management_group_id)                | The ID of the management group to assign the policy to. Required if scope_type is 'management_group'                                                                                   | `string`       | `null`                |    no    |
+| <a name="input_policy_effect"></a> [policy_effect](#input_policy_effect)                                  | The effect of the policy. Valid values are 'DeployIfNotExists', 'AuditIfNotExists', or 'Disabled'                                                                                      | `string`       | `"DeployIfNotExists"` |    no    |
+| <a name="input_prefix_filters"></a> [prefix_filters](#input_prefix_filters)                               | A list of blob prefix filters to apply the lifecycle policy to                                                                                                                         | `list(string)` | `[]`                  |    no    |
+| <a name="input_scope_type"></a> [scope_type](#input_scope_type)                                           | The type of scope to assign the policy to. Valid values are 'management_group' or 'subscription'                                                                                       | `string`       | `"subscription"`      |    no    |
+| <a name="input_subscription_id"></a> [subscription_id](#input_subscription_id)                            | The ID of the subscription to assign the policy to. Required if scope_type is 'subscription'. If not provided and scope_type is 'subscription', the current subscription will be used. | `string`       | `null`                |    no    |
+
+## Outputs
+
+| Name                                                                                                              | Description                                                |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| <a name="output_applied_scope"></a> [applied_scope](#output_applied_scope)                                        | The scope where the policy was applied                     |
+| <a name="output_policy_assignment_id"></a> [policy_assignment_id](#output_policy_assignment_id)                   | The ID of the policy assignment                            |
+| <a name="output_policy_assignment_identity"></a> [policy_assignment_identity](#output_policy_assignment_identity) | The managed identity associated with the policy assignment |
+| <a name="output_policy_id"></a> [policy_id](#output_policy_id)                                                    | The ID of the created policy definition                    |
