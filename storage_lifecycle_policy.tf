@@ -380,3 +380,12 @@ resource "azurerm_role_assignment" "sa_storage_lifecycle" {
   role_definition_name = "Storage Account Contributor"
   principal_id         = azurerm_resource_policy_assignment.sa_storage_lifecycle[0].identity[0].principal_id
 }
+
+# Add resource group level permissions for the policy assignment's managed identity
+# This ensures the identity can deploy to resource groups when remediating
+resource "azurerm_role_assignment" "rg_remediation_contributor" {
+  count                = var.scope_type == "storage_account" ? 1 : 0
+  scope                = "${local.formatted_subscription_id}/resourceGroups/${var.resource_group_name}"
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_resource_policy_assignment.sa_storage_lifecycle[0].identity[0].principal_id
+}
