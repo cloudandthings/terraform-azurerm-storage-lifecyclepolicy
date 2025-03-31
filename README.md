@@ -22,6 +22,7 @@ This Terraform module creates and assigns an Azure Policy that enforces lifecycl
 
 ## Example 1: Apply at subscription level
 
+```
 module "storage_lifecycle_subscription" {
 source = "../" # Path to the module directory
 
@@ -37,9 +38,11 @@ prefix_filters = ["container1/", "backups/"]
 
 policy_effect = "DeployIfNotExists"
 }
+```
 
 ## Example 2: Apply at management group level
 
+```
 module "storage_lifecycle_management_group" {
 source = "../" # Path to the module directory
 
@@ -55,9 +58,11 @@ prefix_filters = ["logs/", "metrics/"]
 
 policy_effect = "AuditIfNotExists" # Start with audit before enforcing
 }
+```
 
 ## Example 3: Apply to a specific storage account
 
+```
 module "storage_lifecycle_storage_account" {
 source = "../" # Path to the module directory
 
@@ -75,6 +80,7 @@ prefix_filters = ["critical/", "important/"]
 
 policy_effect = "DeployIfNotExists" # Start with audit before enforcing but here we showcase DINE approach in our example.
 }
+```
 
 # Terraform Documentation
 
